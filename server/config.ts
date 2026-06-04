@@ -13,6 +13,11 @@ export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 export const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/api/auth/google/callback";
 
+// Google Service Account Credentials (for Direct Calendar booking)
+export const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "";
+export const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY || "";
+export const GOOGLE_CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID || "primary";
+
 // VoBiz Telephony Config
 export const VOBIZ_AUTH_ID = process.env.VOBIZ_AUTH_ID || "";
 export const VOBIZ_AUTH_TOKEN = process.env.VOBIZ_AUTH_TOKEN || "";

@@ -2,6 +2,7 @@ import { google } from "googleapis";
 import { GoogleTokenModel } from "../models/GoogleToken.js";
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } from "../config.js";
 import { checkLeadStatus, captureLeadInfo, getServiceInfo } from "./goranService.js";
+import { createCalendarEvent, listUpcomingMeetings } from "./calendar.js";
 import { logger } from "../utils.js";
 
 interface FunctionCall {
@@ -68,13 +69,13 @@ export async function executeToolCalls(
     return functionResponses;
   }
 
-  // Resolve Google OAuth tokens (lazy load on demand if calendar/gmail tools are used)
+  // Resolve Google OAuth tokens (lazy load on demand if Gmail tool is used)
   let auth: any = null;
-  const hasGoogleTools = functionCalls.some(fc => 
-    ["list_upcoming_meetings", "schedule_meeting", "send_follow_up_email"].includes(fc.name)
+  const hasGmailTool = functionCalls.some(fc => 
+    ["send_follow_up_email"].includes(fc.name)
   );
 
-  if (hasGoogleTools) {
+  if (hasGmailTool) {
     auth = await getAuthenticatedOAuth2(callerPhoneKey);
   }
 
@@ -87,60 +88,47 @@ export async function executeToolCalls(
       switch (fc.name) {
         // ─── Google Workspace Tools ───
         case "list_upcoming_meetings": {
-          if (!auth) {
-            response = { error: "Google account not authenticated. Please link Google Calendar via the dashboard." };
-            break;
-          }
-          const calendar = google.calendar({ version: "v3", auth });
           const max = fc.args?.maxResults || 5;
-          const res = await calendar.events.list({
-            calendarId: "primary",
-            timeMin: new Date().toISOString(),
-            maxResults: max,
-            singleEvents: true,
-            orderBy: "startTime",
-          });
-          const events = res.data.items?.map(e => ({
-            summary: e.summary,
-            start: e.start?.dateTime || e.start?.date,
-            end: e.end?.dateTime || e.end?.date,
-          })) || [];
-          response = { events };
+          try {
+            const events = await listUpcomingMeetings(max);
+            response = { events };
+          } catch (err: any) {
+            response = { error: `Failed to list upcoming meetings: ${err.message || err}` };
+          }
           break;
         }
 
         case "schedule_meeting": {
-          if (!auth) {
-            response = { error: "Google account not authenticated. Please link Google Calendar via the dashboard." };
-            break;
-          }
-          const calendar = google.calendar({ version: "v3", auth });
           const { summary, description, startTime, endTime, attendeeEmail } = fc.args;
-          
-          const res = await calendar.events.insert({
-            calendarId: "primary",
-            requestBody: {
+          try {
+            const htmlLink = await createCalendarEvent({
               summary,
               description,
-              start: { dateTime: startTime },
-              end: { dateTime: endTime },
-              attendees: [{ email: attendeeEmail }]
-            },
-          });
+              startIso: startTime,
+              endIso: endTime,
+              attendeeEmail
+            });
 
-          response = { success: true, eventId: res.data.id, htmlLink: res.data.htmlLink };
-          
-          // Try to update the lead's scheduled meeting details
-          if (callerPhoneKey && callerPhoneKey !== "browser-user") {
-            try {
-              await captureLeadInfo({
-                phone: callerPhoneKey,
-                meetingTime: startTime,
-                meetingLink: res.data.htmlLink || ""
-              });
-            } catch (leadErr) {
-              logger.warn(`Failed to update meeting details on lead record:`, leadErr);
+            if (htmlLink) {
+              response = { success: true, htmlLink };
+              
+              // Try to update the lead's scheduled meeting details
+              if (callerPhoneKey && callerPhoneKey !== "browser-user") {
+                try {
+                  await captureLeadInfo({
+                    phone: callerPhoneKey,
+                    meetingTime: startTime,
+                    meetingLink: htmlLink
+                  });
+                } catch (leadErr) {
+                  logger.warn(`Failed to update meeting details on lead record:`, leadErr);
+                }
+              }
+            } else {
+              response = { error: "Google Calendar service account is not configured." };
             }
+          } catch (err: any) {
+            response = { error: `Failed to create calendar event: ${err.message || err}` };
           }
           break;
         }
