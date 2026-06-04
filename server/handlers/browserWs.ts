@@ -181,6 +181,27 @@ export async function handleBrowserWebSocket(clientWs: WebSocket): Promise<void>
             callId: callLogger.getCallId(),
           });
           logger.info("[WS] Gemini Live session connected!");
+
+          // Trigger agent to speak first immediately upon connection
+          setTimeout(() => {
+            try {
+              if (geminiSession && sessionAlive) {
+                const greetingText = `Call connected. Greet the caller now warmly as ${personaName} from GoRan AI Agency, and ask how you can help them automate their business today.`;
+                geminiSession.sendClientContent({
+                  turns: [
+                    {
+                      role: "user",
+                      parts: [{ text: greetingText }],
+                    },
+                  ],
+                  turnComplete: true,
+                });
+                logger.info("[WS] Greeting dispatched.");
+              }
+            } catch (err: any) {
+              logger.error("[WS] Failed to send browser greeting:", err?.message || err);
+            }
+          }, 500);
         } catch (err: any) {
           logger.error("[WS] Failed to connect to Gemini Live:", err);
           callLogger?.markFailed(err?.message || "Connection failed");
