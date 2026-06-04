@@ -1,6 +1,3 @@
-import { google } from "googleapis";
-import { GoogleTokenModel } from "../models/GoogleToken.js";
-import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } from "../config.js";
 import { checkLeadStatus, captureLeadInfo, getServiceInfo } from "./goranService.js";
 import { createCalendarEvent, listUpcomingMeetings } from "./calendar.js";
 import { sendEmail } from "./mailer.js";
@@ -16,43 +13,6 @@ interface FunctionResponse {
   id: string;
   name: string;
   response: any;
-}
-
-/**
- * Creates a per-request OAuth2 client with stored tokens for a caller.
- */
-async function getAuthenticatedOAuth2(callerPhoneKey: string) {
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    logger.warn("Google OAuth credentials (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET) are missing.");
-    return null;
-  }
-
-  const oAuth = new google.auth.OAuth2(
-    GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET,
-    GOOGLE_REDIRECT_URI
-  );
-
-  // Fallback to "default" token if phoneKey-specific token isn't found
-  let stored = await GoogleTokenModel.findOne({ phoneKey: callerPhoneKey });
-  if (!stored) {
-    stored = await GoogleTokenModel.findOne({ phoneKey: "default" });
-  }
-
-  if (!stored || !stored.access_token) {
-    logger.warn(`No stored Google OAuth tokens found for caller key: ${callerPhoneKey}`);
-    return null;
-  }
-
-  oAuth.setCredentials({
-    access_token: stored.access_token,
-    refresh_token: stored.refresh_token,
-    expiry_date: stored.expiry_date,
-    scope: stored.scope,
-    token_type: stored.token_type,
-  });
-
-  return oAuth;
 }
 
 /**

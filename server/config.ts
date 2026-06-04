@@ -8,7 +8,7 @@ export const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017
 export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp";
 
-// Google Workspace OAuth Credentials (for Calendar and Gmail tool execution)
+// Google OAuth Credentials (optional — legacy route in auth.ts)
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 export const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/api/auth/google/callback";
