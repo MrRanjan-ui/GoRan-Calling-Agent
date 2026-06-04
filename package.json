@@ -21,6 +21,7 @@
     "lucide-react": "^0.546.0",
     "mongoose": "^8.15.1",
     "motion": "^12.23.24",
+    "nodemailer": "^8.0.10",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tsx": "^4.19.4",
@@ -32,6 +33,7 @@
   "devDependencies": {
     "@types/express": "^5.0.2",
     "@types/node": "^22.15.21",
+    "@types/nodemailer": "^8.0.0",
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",
     "@types/uuid": "^10.0.0",

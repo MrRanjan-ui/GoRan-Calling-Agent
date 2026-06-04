@@ -3,6 +3,7 @@ import { GoogleTokenModel } from "../models/GoogleToken.js";
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } from "../config.js";
 import { checkLeadStatus, captureLeadInfo, getServiceInfo } from "./goranService.js";
 import { createCalendarEvent, listUpcomingMeetings } from "./calendar.js";
+import { sendEmail } from "./mailer.js";
 import { logger } from "../utils.js";
 
 interface FunctionCall {
@@ -69,16 +70,6 @@ export async function executeToolCalls(
     return functionResponses;
   }
 
-  // Resolve Google OAuth tokens (lazy load on demand if Gmail tool is used)
-  let auth: any = null;
-  const hasGmailTool = functionCalls.some(fc => 
-    ["send_follow_up_email"].includes(fc.name)
-  );
-
-  if (hasGmailTool) {
-    auth = await getAuthenticatedOAuth2(callerPhoneKey);
-  }
-
   for (const fc of functionCalls) {
     logger.info(`[ToolExecutor] Executing: ${fc.name}`, fc.args);
 
@@ -134,33 +125,17 @@ export async function executeToolCalls(
         }
 
         case "send_follow_up_email": {
-          if (!auth) {
-            response = { error: "Google account not authenticated. Please link Gmail via the dashboard." };
-            break;
-          }
-          const gmail = google.gmail({ version: "v1", auth });
           const { recipientEmail, subject, body } = fc.args;
-          const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString("base64")}?=`;
-          const messageParts = [
-            `To: ${recipientEmail}`,
-            "Content-Type: text/html; charset=utf-8",
-            "MIME-Version: 1.0",
-            `Subject: ${utf8Subject}`,
-            "",
-            body,
-          ];
-          const rawMsg = messageParts.join("\n");
-          const encodedMessage = Buffer.from(rawMsg)
-            .toString("base64")
-            .replace(/\+/g, "-")
-            .replace(/\//g, "_")
-            .replace(/=+$/, "");
-
-          const res = await gmail.users.messages.send({
-            userId: "me",
-            requestBody: { raw: encodedMessage },
+          const result = await sendEmail({
+            to: recipientEmail,
+            subject: subject,
+            body: body
           });
-          response = { success: true, messageId: res.data.id };
+          if (result.success) {
+            response = { success: true, messageId: result.messageId };
+          } else {
+            response = { error: result.error };
+          }
           break;
         }
 

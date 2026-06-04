@@ -24,6 +24,13 @@ export const VOBIZ_AUTH_TOKEN = process.env.VOBIZ_AUTH_TOKEN || "";
 export const VOBIZ_FROM_NUMBER = process.env.VOBIZ_FROM_NUMBER || "";
 export const VOBIZ_SIP_DOMAIN = process.env.VOBIZ_SIP_DOMAIN || "";
 
+// SMTP Config (for sending emails)
+export const SMTP_HOST = process.env.SMTP_HOST || "";
+export const SMTP_PORT = Number(process.env.SMTP_PORT) || 465;
+export const SMTP_USER = process.env.SMTP_USER || "";
+export const SMTP_PASS = process.env.SMTP_PASS || "";
+export const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || "goran.dotin@gmail.com";
+
 // Twilio Telephony Config
 export const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 export const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
