@@ -3,6 +3,7 @@ import type { LiveServerMessage } from "@google/genai";
 import { getGeminiClient, getCompiledSystemInstruction, allToolDeclarations, GEMINI_MODEL, Modality } from "../services/gemini.js";
 import { executeToolCalls } from "../services/toolExecutor.js";
 import { CallLogger } from "../services/callLogger.js";
+import { PersonaModel } from "../models/Persona.js";
 import { base64ToInt16Array, resampleInt16Pcm } from "../services/audioCodec.js";
 import { generateCallSummary } from "../services/summaryService.js";
 import { logger } from "../utils.js";
@@ -46,14 +47,44 @@ export async function handleBrowserWebSocket(clientWs: WebSocket): Promise<void>
           return;
         }
 
-        const voice = message.voice || "Aoede";
-        const baseInstruction = message.systemInstruction || "You are a helpful calling agent.";
-        const kbId = message.knowledgeBaseId;
+        let voice = message.voice || "Aoede";
+        let baseInstruction = message.systemInstruction || "";
+        let kbId = message.knowledgeBaseId;
+        let temperature = typeof message.temperature === "number" ? message.temperature : 0.7;
+        let googlePhoneKey = message.googlePhoneKey || "default";
+        let personaId = message.personaId || "riya-inbound";
+        let personaName = message.personaName || "Riya";
+
+        // Fetch persona details dynamically from the database
+        try {
+          const persona = await PersonaModel.findOne({ id: personaId });
+          if (persona) {
+            voice = persona.voice;
+            baseInstruction = persona.systemInstruction;
+            kbId = persona.knowledgeBaseId;
+            personaName = persona.name;
+            logger.info(`[WS] Resolved database persona: ${personaName} (Voice: ${voice})`);
+          } else {
+            logger.warn(`[WS] Persona ${personaId} not found in database. Falling back to default.`);
+            const defaultPersona = await PersonaModel.findOne({ isDefault: true }) || await PersonaModel.findOne({});
+            if (defaultPersona) {
+              voice = defaultPersona.voice;
+              baseInstruction = defaultPersona.systemInstruction;
+              kbId = defaultPersona.knowledgeBaseId;
+              personaName = defaultPersona.name;
+              personaId = defaultPersona.id;
+            }
+          }
+        } catch (dbErr) {
+          logger.error(`[WS] Error loading persona ${personaId} from DB:`, dbErr);
+        }
+
+        // Final fallback if instructions are still completely empty
+        if (!baseInstruction) {
+          baseInstruction = "You are a helpful calling agent.";
+        }
+
         const instruction = await getCompiledSystemInstruction(baseInstruction, kbId);
-        const temperature = typeof message.temperature === "number" ? message.temperature : 0.7;
-        const googlePhoneKey = message.googlePhoneKey || "default";
-        const personaId = message.personaId || "unknown";
-        const personaName = message.personaName || "Unknown Agent";
 
         // Initialize call logger
         callLogger = new CallLogger(personaId, personaName, "browser-user", "browser", "outbound");
