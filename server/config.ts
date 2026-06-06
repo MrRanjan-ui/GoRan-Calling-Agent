@@ -30,6 +30,7 @@ export const SMTP_PORT = Number(process.env.SMTP_PORT) || 465;
 export const SMTP_USER = process.env.SMTP_USER || "";
 export const SMTP_PASS = process.env.SMTP_PASS || "";
 export const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || "goran.dotin@gmail.com";
+export const SENDER_EMAIL = process.env.SENDER_EMAIL || "Ashish Ranjan <ashish@goran.in>";
 
 // Twilio Telephony Config
 export const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";

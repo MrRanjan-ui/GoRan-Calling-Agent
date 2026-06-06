@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } from "../config.js";
+import { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SENDER_EMAIL } from "../config.js";
 import { logger } from "../utils.js";
 
 // Initialize SMTP transporter lazily
@@ -46,7 +46,7 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
     const isHtml = /<[a-z][\s\S]*>/i.test(params.body);
 
     const mailOptions = {
-      from: `"GoRan AI Agency" <${SMTP_USER}>`,
+      from: SENDER_EMAIL || `"GoRan AI Agency" <${SMTP_USER}>`,
       to: params.to,
       subject: params.subject,
       [isHtml ? "html" : "text"]: params.body,
